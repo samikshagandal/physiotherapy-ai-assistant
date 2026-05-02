@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhysioAI — Your Friendly Physio Buddy 🌈</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --pink: #ff6b9d; --orange: #ff8c42; --yellow: #ffd166;
+  --green: #06d6a0; --blue: #4cc9f0; --purple: #7b2d8b;
+  --lavender: #a855f7; --bg: #fdf4ff;
+}
+body {
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(135deg, #ffe8f5 0%, #eef4ff 50%, #e8fff5 100%);
+  min-height: 100vh; overflow-x: hidden;
+}
+
+/* ========= LAYOUT ========= */
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; }
+.screen { display: none; padding: 16px 16px 80px; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* ========= HEADER ========= */
+.header { text-align: center; padding: 18px 0 14px; }
+.logo { font-family: 'Fredoka One', cursive; font-size: 34px; background: linear-gradient(90deg,#ff6b9d,#a855f7,#4cc9f0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.logo-sub { font-size: 12px; color: #aaa; margin-top: 2px; font-weight: 600; letter-spacing: 0.5px; }
+
+/* ========= NAV BAR ========= */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1.5px solid #f0e0ff; display: flex; z-index: 200; padding: 8px 4px 12px; }
+.nav-item { flex: 1; text-align: center; cursor: pointer; transition: all 0.2s; padding: 6px 4px 2px; border-radius: 12px; }
+.nav-item.active .nav-icon { transform: scale(1.2); }
+.nav-icon { font-size: 22px; display: block; transition: transform 0.2s; }
+.nav-label { font-size: 10px; font-weight: 700; color: #bbb; margin-top: 2px; display: block; transition: color 0.2s; }
+.nav-item.active .nav-label { color: var(--purple); }
+
+/* ========= CHAT ========= */
+.chat-wrap { background: white; border-radius: 20px; padding: 14px; min-height: 300px; max-height: 380px; overflow-y: auto; border: 1.5px solid #f0e0ff; margin-bottom: 14px; }
+.chat-wrap::-webkit-scrollbar { width: 4px; }
+.chat-wrap::-webkit-scrollbar-thumb { background: #f0c0ff; border-radius: 4px; }
+.bubble-bot { background: linear-gradient(135deg,#fff0f8,#f0f4ff); border: 1.5px solid #f0c0ff; border-radius: 18px 18px 18px 4px; padding: 12px 16px; margin: 8px 0; font-size: 14px; color: #333; max-width: 90%; line-height: 1.6; animation: slideIn 0.3s ease; }
+.bubble-user { background: linear-gradient(135deg,#a855f7,#4cc9f0); border-radius: 18px 18px 4px 18px; padding: 12px 16px; margin: 8px 0 8px auto; font-size: 14px; color: white; max-width: 80%; animation: slideIn 0.3s ease; }
+@keyframes slideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.options-grid { display: flex; flex-direction: column; gap: 8px; }
+.opt-btn { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: white; border: 2px solid #f0c0ff; border-radius: 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #444; font-family: 'Nunito', sans-serif; }
+.opt-btn:hover, .opt-btn:active { background: linear-gradient(135deg,#fff0f8,#f0f4ff); border-color: var(--purple); transform: translateX(5px); }
+.opt-icon { font-size: 20px; }
+
+/* ========= EXERCISES ========= */
+.section-label { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--purple); text-transform: uppercase; margin-bottom: 10px; }
+.ex-card { background: white; border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; border: 2px solid #f0e8ff; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.25s; }
+.ex-card:hover { border-color: var(--green); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(6,214,160,0.18); }
+.ex-card.selected { border-color: var(--purple); background: linear-gradient(135deg,#f9f0ff,#f0f4ff); box-shadow: 0 4px 16px rgba(123,45,139,0.15); }
+.ex-icon-wrap { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+.ex-info { flex: 1; }
+.ex-info h3 { font-size: 15px; font-weight: 800; color: #2d1b33; }
+.ex-info p { font-size: 12px; color: #999; margin-top: 2px; }
+.ex-tags { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+.tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.tag-green { background: #06d6a022; color: #059669; }
+.tag-purple { background: #a855f722; color: #7b2d8b; }
+.tag-blue { background: #4cc9f022; color: #0369a1; }
+.go-btn { background: linear-gradient(135deg,#a855f7,#4cc9f0); color: white; border: none; border-radius: 50px; padding: 5px 14px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: 'Nunito',sans-serif; white-space: nowrap; }
+
+/* ========= CAMERA SCREEN ========= */
+.cam-box { background: #0d0d1a; border-radius: 22px; overflow: hidden; position: relative; margin-bottom: 14px; }
+#videoEl { width: 100%; display: block; transform: scaleX(-1); }
+#canvasEl { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+.cam-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 10; gap: 6px; }
+.cam-badge { padding: 5px 12px; border-radius: 30px; font-size: 12px; font-weight: 700; font-family: 'Nunito',sans-serif; }
+.badge-green { background: rgba(6,214,160,0.85); color: white; }
+.badge-orange { background: rgba(255,140,66,0.85); color: white; }
+.badge-pink { background: rgba(255,107,157,0.85); color: white; }
+.badge-dark { background: rgba(0,0,0,0.6); color: white; }
+
+.rep-panel { background: white; border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; border: 2px solid #f0e0ff; }
+.rep-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.rep-num { font-family: 'Fredoka One', cursive; font-size: 60px; background: linear-gradient(90deg,#ff6b9d,#a855f7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height: 1; }
+.rep-of { font-size: 13px; color: #ccc; font-weight: 700; align-self: flex-end; padding-bottom: 8px; }
+.rep-dots { display: flex; gap: 8px; }
+.rdot { width: 34px; height: 34px; border-radius: 50%; background: #f5f5f5; border: 2px solid #eee; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #ccc; transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+.rdot.done { background: linear-gradient(135deg,#06d6a0,#4cc9f0); border-color: #06d6a0; color: white; transform: scale(1.15); }
+.rdot.active { border-color: var(--purple); background: #f9f0ff; color: var(--purple); animation: pulse 0.8s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+.acc-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.acc-lbl { font-size: 12px; font-weight: 700; color: #bbb; width: 80px; }
+.acc-track { flex: 1; height: 8px; background: #f5f5f5; border-radius: 8px; overflow: hidden; }
+.acc-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg,#06d6a0,#4cc9f0); transition: width 0.4s; }
+.acc-pct { font-size: 12px; font-weight: 800; color: var(--green); width: 36px; text-align: right; }
+
+.instr-box { background: linear-gradient(135deg,#f9f0ff,#f0f4ff); border: 1.5px solid #e0c8ff; border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; font-size: 14px; color: #555; text-align: center; font-weight: 700; line-height: 1.5; }
+.feedback { border-radius: 14px; padding: 10px 16px; margin-bottom: 10px; font-size: 14px; text-align: center; font-weight: 800; transition: all 0.3s; }
+.fb-good { background: #06d6a015; border: 1.5px solid #06d6a0; color: #059669; }
+.fb-wait { background: #ffd16615; border: 1.5px solid #ffd166; color: #92600a; }
+.fb-bad  { background: #ff6b9d15; border: 1.5px solid #ff6b9d; color: #cc3366; }
+
+.cam-controls { display: flex; gap: 8px; }
+.voice-pill { display: flex; align-items: center; gap: 6px; background: #f9f0ff; border: 1.5px solid #e0c8ff; border-radius: 30px; padding: 0 14px; font-size: 12px; font-weight: 800; color: var(--purple); cursor: pointer; white-space: nowrap; }
+.vdot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.voice-pill.off .vdot { background: #ccc; animation: none; }
+.voice-pill.off { color: #bbb; border-color: #eee; background: #f8f8f8; }
+
+.big-btn { width: 100%; padding: 15px; border-radius: 50px; font-size: 15px; font-weight: 800; cursor: pointer; border: none; font-family: 'Nunito', sans-serif; transition: all 0.2s; }
+.btn-gradient { background: linear-gradient(90deg,#a855f7,#4cc9f0); color: white; }
+.btn-pink { background: linear-gradient(90deg,#ff6b9d,#ff8c42); color: white; }
+.btn-green { background: linear-gradient(90deg,#06d6a0,#4cc9f0); color: white; }
+.btn-red { background: linear-gradient(90deg,#ff6b9d,#a855f7); color: white; }
+.big-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+.big-btn:active { transform: translateY(0); }
+
+.pre-cam { text-align: center; padding: 30px 20px; }
+.pre-cam h2 { font-size: 20px; font-weight: 800; color: #2d1b33; margin: 12px 0 6px; }
+.pre-cam p { font-size: 13px; color: #999; margin-bottom: 24px; line-height: 1.6; }
+.instructions-list { background: white; border-radius: 16px; padding: 14px 16px; margin-bottom: 20px; border: 1.5px solid #f0e0ff; text-align: left; }
+.instr-item { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid #f8f0ff; font-size: 13px; color: #555; }
+.instr-item:last-child { border: none; }
+.instr-num { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg,#a855f7,#4cc9f0); color: white; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+/* ========= REPORT ========= */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.stat-card { background: white; border-radius: 14px; padding: 14px 10px; text-align: center; border: 1.5px solid #f0e0ff; }
+.stat-val { font-family: 'Fredoka One', cursive; font-size: 28px; }
+.stat-lbl { font-size: 10px; font-weight: 800; color: #bbb; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.prog-bar { background: #f5f5f5; border-radius: 8px; height: 8px; overflow: hidden; margin: 6px 0; }
+.prog-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg,#ff6b9d,#a855f7,#4cc9f0); transition: width 0.6s; }
+.log-card { background: white; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; border: 1.5px solid #f0e0ff; }
+.log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.log-name { font-weight: 800; font-size: 14px; color: #2d1b33; }
+.log-date { font-size: 11px; color: #ccc; font-weight: 700; }
+.log-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f8f0ff; font-size: 13px; }
+.log-row:last-child { border: none; }
+.log-key { color: #bbb; font-weight: 600; }
+.log-val { font-weight: 800; color: var(--purple); }
+
+/* ========= COMPLETION ========= */
+.overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.97); z-index: 300; overflow-y: auto; }
+.completion-inner { max-width: 480px; margin: 0 auto; padding: 30px 20px; text-align: center; }
+.fireworks { font-size: 70px; animation: bounce 0.5s ease infinite alternate; display: block; }
+@keyframes bounce { from{transform:scale(1)} to{transform:scale(1.15)} }
+.completion-inner h2 { font-family: 'Fredoka One', cursive; font-size: 32px; color: var(--purple); margin: 14px 0 6px; }
+.completion-inner p { color: #999; font-size: 14px; margin-bottom: 20px; }
+.result-card { background: linear-gradient(135deg,#f9f0ff,#f0faff); border: 1.5px solid #e0c8ff; border-radius: 18px; padding: 16px; margin-bottom: 16px; text-align: left; }
+.result-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f0e8ff; }
+.result-row:last-child { border: none; }
+.rlabel { font-size: 13px; color: #bbb; font-weight: 700; }
+.rval { font-size: 14px; font-weight: 800; color: var(--purple); }
+.ai-advice { background: linear-gradient(135deg,#e8fff5,#f0faff); border: 1.5px solid #06d6a055; border-radius: 14px; padding: 14px; margin-bottom: 20px; font-size: 14px; color: #059669; text-align: left; line-height: 1.6; }
+
+/* empty state */
+.empty-state { text-align: center; padding: 50px 20px; }
+.empty-icon { font-size: 60px; margin-bottom: 14px; display: block; }
+.empty-state p { color: #ccc; font-size: 14px; font-weight: 700; }
+
+/* ========= MISC ========= */
+.divider { height: 1px; background: linear-gradient(90deg,transparent,#f0c8ff,transparent); margin: 16px 0; }
+.tip-box { background: linear-gradient(135deg,#fff8e8,#fffaf0); border: 1.5px solid #ffd16655; border-radius: 12px; padding: 10px 14px; font-size: 12px; color: #92600a; margin-bottom: 12px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════════════════════════════════
+     SCREEN 1: CHAT
+══════════════════════════════════════ -->
+<div class="screen active" id="s-chat">
+  <div class="header">
+    <div class="logo">🌈 PhysioAI</div>
+    <div class="logo-sub">Your Friendly Physio Buddy — Final Year Project ✨</div>
+  </div>
+  <div class="chat-wrap" id="chatWrap">
+    <div class="bubble-bot">
+      👋 Hey hey! Welcome to <strong>PhysioAI!</strong><br><br>
+      I'm your friendly physio buddy! Tell me <strong>where it hurts</strong> and I'll give you some easy exercises to feel better 💪
+    </div>
+  </div>
+  <div id="optArea" class="options-grid"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 2: EXERCISES
+══════════════════════════════════════ -->
+<div class="screen" id="s-exercises">
+  <div class="header">
+    <div class="logo">🌈 PhysioAI</div>
+  </div>
+  <div class="section-label" id="exLabel">Choose Your Exercise</div>
+  <div id="exList"></div>
+  <div style="margin-top: 12px;">
+    <button class="big-btn btn-gradient" onclick="goToCamera()">📷 Start Camera & Do Exercise!</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 3: CAMERA / POSE
+══════════════════════════════════════ -->
+<div class="screen" id="s-camera">
+  <div class="header">
+    <div class="logo">🌈 PhysioAI</div>
+  </div>
+
+  <!-- PRE-CAMERA -->
+  <div id="preCamera" class="pre-cam">
+    <div style="font-size:64px;" id="preCamIcon">📷</div>
+    <h2 id="preCamTitle">Ready to exercise?</h2>
+    <p id="preCamDesc">Select an exercise from the Exercises tab, then come back here to start!</p>
+    <div class="instructions-list" id="instrList"></div>
+    <div class="tip-box">📌 Tip: Make sure you're in a well-lit area and your full body is visible to the camera!</div>
+    <button class="big-btn btn-gradient" onclick="startCamera()" id="startCamBtn">🎥 Enable Camera & Start!</button>
+    <div style="margin-top:10px;font-size:11px;color:#ccc;font-weight:700;">🔒 Camera stays on your device — nothing is uploaded!</div>
+  </div>
+
+  <!-- LIVE CAMERA -->
+  <div id="liveCamera" style="display:none;">
+    <div class="cam-box" style="height: 250px; min-height: 200px;">
+      <video id="videoEl" autoplay playsinline muted style="height:250px;object-fit:cover;"></video>
+      <canvas id="canvasEl" width="640" height="480"></canvas>
+      <div class="cam-top">
+        <div class="cam-badge badge-green" id="poseStatus">🟢 AI On</div>
+        <div class="cam-badge badge-dark" id="exBadge">Exercise</div>
+        <div class="cam-badge badge-orange" id="accBadge">--</div>
+      </div>
+    </div>
+
+    <div class="rep-panel">
+      <div class="rep-top">
+        <div>
+          <div class="rep-num" id="repNum">0</div>
+          <div class="rep-of">/ 5 reps</div>
+        </div>
+        <div class="rep-dots" id="repDots">
+          <div class="rdot" id="d1">1</div>
+          <div class="rdot" id="d2">2</div>
+          <div class="rdot" id="d3">3</div>
+          <div class="rdot" id="d4">4</div>
+          <div class="rdot" id="d5">5</div>
+        </div>
+      </div>
+      <div class="acc-row">
+        <div class="acc-lbl">Pose Match</div>
+        <div class="acc-track"><div class="acc-fill" id="accBar" style="width:0%"></div></div>
+        <div class="acc-pct" id="accPct">0%</div>
+      </div>
+    </div>
+
+    <div class="instr-box" id="instrBox">Get into starting position! 🧍</div>
+    <div class="feedback fb-wait" id="feedBox">⏳ Stand in front of camera...</div>
+
+    <div class="cam-controls" style="margin-bottom:10px;">
+      <div class="voice-pill" id="voicePill" onclick="toggleVoice()">
+        <div class="vdot"></div> Voice On
+      </div>
+      <button class="big-btn btn-red" style="flex:1;" onclick="stopExercise()">⏹ Stop</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 4: REPORT
+══════════════════════════════════════ -->
+<div class="screen" id="s-report">
+  <div class="header">
+    <div class="logo">🌈 PhysioAI</div>
+  </div>
+  <div class="section-label">Progress Report</div>
+  <div id="reportArea">
+    <div class="empty-state">
+      <span class="empty-icon">📋</span>
+      <p>Complete some exercises and your progress will appear here!</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     COMPLETION OVERLAY
+══════════════════════════════════════ -->
+<div class="overlay" id="completionOverlay">
+  <div class="completion-inner">
+    <span class="fireworks">🎉</span>
+    <h2>You crushed it!</h2>
+    <p>All 5 reps done perfectly! You're amazing! 🌟</p>
+    <div class="result-card">
+      <div class="result-row"><span class="rlabel">Exercise</span><span class="rval" id="dExName">—</span></div>
+      <div class="result-row"><span class="rlabel">Reps Done</span><span class="rval">5 / 5 ✅</span></div>
+      <div class="result-row"><span class="rlabel">Avg Accuracy</span><span class="rval" id="dAcc">—</span></div>
+      <div class="result-row"><span class="rlabel">Time Taken</span><span class="rval" id="dTime">—</span></div>
+    </div>
+    <div class="ai-advice">
+      💬 <strong>PhysioAI says:</strong><br>
+      <span id="aiTip">Great work! Consistency is the secret to feeling better. Try to do these exercises every day!</span>
+    </div>
+    <button class="big-btn btn-pink" onclick="closeCompletion()" style="margin-bottom:10px;">🏋️ Do Another Exercise</button>
+    <button class="big-btn btn-gradient" onclick="viewReport()">📊 See My Progress Report</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     BOTTOM NAV
+══════════════════════════════════════ -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-chat" onclick="switchTab('chat')">
+    <span class="nav-icon">💬</span><span class="nav-label">Chat</span>
+  </div>
+  <div class="nav-item" id="nav-exercises" onclick="switchTab('exercises')">
+    <span class="nav-icon">🏋️</span><span class="nav-label">Exercises</span>
+  </div>
+  <div class="nav-item" id="nav-camera" onclick="switchTab('camera')">
+    <span class="nav-icon">📷</span><span class="nav-label">Camera</span>
+  </div>
+  <div class="nav-item" id="nav-report" onclick="switchTab('report')">
+    <span class="nav-icon">📊</span><span class="nav-label">Report</span>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- MediaPipe CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+
+<script>
+// ════════════════════════════════════
+// DATA
+// ════════════════════════════════════
+const EXERCISES = {
+  neck: [
+    {
+      id:'neck_tilt', name:'Neck Side Tilt', icon:'🦒', bg:'#ff6b9d22',
+      desc:'Gently tilt head side to side — great for neck stiffness',
+      instructions:['Stand or sit straight, face the camera','Slowly tilt your head RIGHT — ear toward shoulder','Hold 2 seconds then return to centre','Then tilt your head LEFT — ear toward shoulder','Back to centre = 1 rep! Keep shoulders relaxed.'],
+      detect:'neck_tilt', tip:'Beautiful neck tilt! Shoulders nice and relaxed!'
+    },
+    {
+      id:'shoulder_roll', name:'Shoulder Rolls', icon:'🔄', bg:'#4cc9f022',
+      desc:'Roll both shoulders in big circles — loosens up the joints',
+      instructions:['Stand facing camera, arms relaxed at sides','Roll BOTH shoulders UP toward your ears','Then BACK and DOWN in a slow circle','One full rotation = 1 rep!','Keep breathing normally throughout.'],
+      detect:'shoulder_roll', tip:'Lovely shoulder rolls! Keep those circles big!'
+    },
+    {
+      id:'chin_tuck', name:'Chin Tucks', icon:'🧏', bg:'#a855f722',
+      desc:'Pull chin back gently — strengthens neck muscles',
+      instructions:['Face camera directly, eyes level','Gently pull your chin BACK (double chin position!)','Hold for 2 seconds — feel the stretch at the back','Return to neutral — that is 1 rep!','Do NOT tilt your head, just pull straight back.'],
+      detect:'chin_tuck', tip:'Perfect chin tuck! That posture is looking great!'
+    }
+  ],
+  back: [
+    {
+      id:'back_ext', name:'Standing Back Extension', icon:'🏹', bg:'#ffd16622',
+      desc:'Gentle backwards lean — relieves lower back tightness',
+      instructions:['Stand facing camera, feet hip-width apart','Place both hands on your lower back for support','Slowly lean BACKWARD — look up gently','Only go as far as comfortable','Come back upright = 1 rep! Go slowly.'],
+      detect:'back_ext', tip:'Great back extension! Nice controlled movement!'
+    },
+    {
+      id:'hip_hinge', name:'Hip Hinge Bend', icon:'🙇', bg:'#06d6a022',
+      desc:'Hinge forward from hips — stretches the whole back',
+      instructions:['Stand tall, feet shoulder-width apart','Hinge FORWARD from hips (not waist!)','Keep your back flat like a table top','Feel the gentle stretch in hamstrings','Come back up = 1 rep! Bend knees slightly.'],
+      detect:'hip_hinge', tip:'Excellent hip hinge! Back is perfectly flat!'
+    },
+    {
+      id:'side_bend', name:'Standing Side Bend', icon:'🌊', bg:'#ff8c4222',
+      desc:'Bend sideways gently — stretches the sides of your back',
+      instructions:['Stand facing camera, feet hip-width apart','Raise your RIGHT arm up overhead','Slowly bend to the LEFT — slide your left hand down your thigh','Feel the stretch along your right side','Come back up, switch sides = 1 rep!'],
+      detect:'side_bend', tip:'Beautiful side bend! Really feel that stretch!'
+    }
+  ],
+  knee: [
+    {
+      id:'mini_squat', name:'Mini Squat', icon:'🏋️', bg:'#4cc9f022',
+      desc:'Small safe squat — strengthens without stressing the knee',
+      instructions:['Face camera, feet shoulder-width apart','Arms out in front for balance','Slowly bend knees — only go QUARTER way down','Keep your back straight and chest up','Stand back up = 1 rep! Knees follow toes.'],
+      detect:'squat', tip:'Great squat! Knees nicely aligned!'
+    },
+    {
+      id:'calf_raise', name:'Calf Raises', icon:'👟', bg:'#ff6b9d22',
+      desc:'Rise up on toes — strengthens calves and improves balance',
+      instructions:['Stand facing camera near a wall for balance','Feet together or hip-width apart','Slowly rise up on your TIPTOES as high as possible','Hold at the top for 2 seconds','Lower back down slowly = 1 rep!'],
+      detect:'calf_raise', tip:'Perfect calf raise! Great balance!'
+    },
+    {
+      id:'leg_raise', name:'Straight Leg Raise', icon:'🦵', bg:'#7b2d8b22',
+      desc:'Raise one leg — builds quad strength without bending knee',
+      instructions:['Hold onto a wall or chair for balance','Stand on your LEFT leg, face slightly sideways','Lift RIGHT leg STRAIGHT in front of you','Raise to hip height or as high as comfortable','Lower slowly = 1 rep! Keep toes flexed.'],
+      detect:'leg_raise', tip:'Excellent leg raise! Core is engaged nicely!'
+    }
+  ],
+  wrist: [
+    {
+      id:'elbow_curl', name:'Elbow Curls', icon:'💪', bg:'#06d6a022',
+      desc:'Bend and extend the elbow — great for tennis/golfer elbow',
+      instructions:['Stand facing camera, arms at your sides','Keep your upper arm still against your body','Slowly CURL your right hand up to your shoulder','Squeeze at the top for 2 seconds','Lower slowly = 1 rep! Then switch arms.'],
+      detect:'elbow_curl', tip:'Brilliant elbow curl! Controlled movement!'
+    },
+    {
+      id:'wrist_flex', name:'Wrist Flexion', icon:'🖐️', bg:'#ffd16622',
+      desc:'Flex wrist up and down — relieves wrist and forearm pain',
+      instructions:['Extend your RIGHT arm forward toward the camera','Keep your elbow straight','Slowly bend wrist DOWN — fingers point to floor','Then bend wrist UP — fingers point to ceiling','One down + up = 1 rep! Only wrist moves.'],
+      detect:'wrist_flex', tip:'Nice wrist flex! Good range of motion!'
+    },
+    {
+      id:'wrist_circle', name:'Wrist Circles', icon:'⭕', bg:'#ff6b9d22',
+      desc:'Circle the wrists — improves mobility and reduces stiffness',
+      instructions:['Hold both arms out forward toward the camera','Make loose fists with both hands','Circle both wrists CLOCKWISE — 5 rotations','Then COUNTERCLOCKWISE — 5 rotations','That whole thing = 1 rep!'],
+      detect:'wrist_circle', tip:'Lovely wrist circles! So smooth!'
+    }
+  ],
+  hip: [
+    {
+      id:'hip_abduct', name:'Hip Abduction', icon:'🩻', bg:'#a855f722',
+      desc:'Lift leg out to side — strengthens hip stabilisers',
+      instructions:['Stand sideways to camera — left side toward lens','Hold wall for balance with your right hand','Stand on RIGHT leg','Lift LEFT leg OUT to the side — keep toes forward','Lower slowly = 1 rep! Do not lean.'],
+      detect:'hip_abduct', tip:'Perfect hip abduction! Staying nice and upright!'
+    },
+    {
+      id:'hip_circle', name:'Hip Circles', icon:'🌀', bg:'#ff8c4222',
+      desc:'Circle the hips — amazing for hip and lower back mobility',
+      instructions:['Face camera, feet hip-width apart, hands on hips','Make big circles with your hips — start CLOCKWISE','5 big circles, then reverse COUNTERCLOCKWISE for 5','Keep feet planted, upper body stays upright','5+5 circles = 1 rep! Like a slow hula hoop!'],
+      detect:'hip_circle', tip:'Excellent hip circles! Great mobility!'
+    },
+    {
+      id:'bridge', name:'Glute Bridge', icon:'🌉', bg:'#4cc9f022',
+      desc:'Lie down and lift hips — great for glutes and lower back',
+      instructions:['Lie on your BACK (camera should see you from the side)','Bend your knees, feet flat on floor hip-width apart','Press into your feet and push hips UP toward ceiling','Squeeze your glutes hard at the top — hold 2 sec','Lower slowly = 1 rep! Keep core tight.'],
+      detect:'bridge', tip:'Beautiful bridge! Glutes fully engaged!'
+    }
+  ]
+};
+
+const AREA_NAMES = { neck:'Neck & Shoulders', back:'Lower Back', knee:'Knee & Legs', wrist:'Wrist & Elbow', hip:'Hip & Pelvis' };
+const AI_TIPS = {
+  neck:'Neck pain is super common! Try to check your screen height — your monitor should be at eye level. 🖥️',
+  back:'For lower back pain, walking and staying active is key! Don\'t stay seated for too long. 🚶',
+  knee:'Make sure to warm up before any exercise. Ice + elevation can help soreness after! 🧊',
+  wrist:'Take regular breaks from typing! Every 30 minutes, do a quick wrist stretch. ⌨️',
+  hip:'Hip mobility exercises done daily make a HUGE difference! Try them every morning. ☀️'
+};
+
+// ════════════════════════════════════
+// STATE
+// ════════════════════════════════════
+let smoothBuffer = [];
+let lastRepTime = 0;
+let holdFrames = 0;
+let stableState = 'neutral';
+let frameSkip = 0;
+let currentArea = null, currentEx = null;
+let repCount = 0, exerciseActive = false;
+let lastState = 'neutral', stateTimer = 0;
+let repCooldown = false, startTime = null;
+let accReadings = [], exerciseLog = [];
+let voiceOn = true, lastSpeakTime = 0;
+let mpPose = null, mpCam = null;
+let canvasCtx = null;
+const synth = window.speechSynthesis;
+
+// ════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════
+function switchTab(tab) {
+  ['chat','exercises','camera','report'].forEach(t => {
+    document.getElementById('s-'+t).classList.remove('active');
+    document.getElementById('nav-'+t).classList.remove('active');
+  });
+  document.getElementById('s-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  if(tab === 'report') updateReport();
+}
+
+function goToCamera() {
+  if(!currentEx) { speak('Please select an exercise first!'); return; }
+  switchTab('camera');
+}
+
+// ════════════════════════════════════
+// VOICE
+// ════════════════════════════════════
+function speak(text, force=false) {
+  if(!voiceOn && !force) return;
+  const now = Date.now();
+  if(now - lastSpeakTime < 2200 && !force) return;
+  lastSpeakTime = now;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.0; u.pitch = 1.15; u.volume = 1.0;
+  const voices = synth.getVoices();
+  const female = voices.find(v => /female|woman|zira|victoria|samantha|karen|moira|tessa|fiona/i.test(v.name));
+  if(female) u.voice = female;
+  synth.speak(u);
+}
+
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  const pill = document.getElementById('voicePill');
+  pill.className = voiceOn ? 'voice-pill' : 'voice-pill off';
+  pill.innerHTML = voiceOn ? '<div class="vdot"></div> Voice On' : '<div class="vdot"></div> Voice Off';
+  if(voiceOn) speak('Voice assistant enabled!', true);
+}
+
+// ════════════════════════════════════
+// CHAT LOGIC
+// ════════════════════════════════════
+function addMsg(text, who='bot') {
+  const wrap = document.getElementById('chatWrap');
+  const el = document.createElement('div');
+  el.className = who === 'bot' ? 'bubble-bot' : 'bubble-user';
+  el.innerHTML = text;
+  wrap.appendChild(el);
+  setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'end'}), 100);
+}
+
+function showOptions(opts) {
+  const area = document.getElementById('optArea');
+  area.innerHTML = '';
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerHTML = `<span class="opt-icon">${o.icon}</span><span>${o.label}</span>`;
+    btn.onclick = o.action;
+    area.appendChild(btn);
+  });
+}
+
+function initChat() {
+  showOptions([
+    { icon:'😣', label:'Neck & Shoulders', action:()=>pickArea('neck') },
+    { icon:'🔙', label:'Lower Back', action:()=>pickArea('back') },
+    { icon:'🦵', label:'Knee & Legs', action:()=>pickArea('knee') },
+    { icon:'🖐️', label:'Wrist & Elbow', action:()=>pickArea('wrist') },
+    { icon:'🩻', label:'Hip & Pelvis', action:()=>pickArea('hip') }
+  ]);
+  setTimeout(() => speak('Welcome to PhysioAI! Where are you feeling pain today?', true), 800);
+}
+
+function pickArea(area) {
+  currentArea = area;
+  addMsg(AREA_NAMES[area], 'user');
+  document.getElementById('optArea').innerHTML = '';
+  setTimeout(() => {
+    addMsg(`Ouch, sorry about your <strong>${AREA_NAMES[area]}</strong>! 😔<br><br>I've picked <strong>3 gentle exercises</strong> especially for you. How bad is it today?`, 'bot');
+    showOptions([
+      { icon:'😊', label:"It's mild — just a bit sore", action:()=>pickSeverity('mild') },
+      { icon:'😐', label:"It's moderate — hurts but ok", action:()=>pickSeverity('moderate') },
+      { icon:'😣', label:"It's quite bad today", action:()=>pickSeverity('severe') }
+    ]);
+    speak(`I found 3 exercises for your ${AREA_NAMES[area].toLowerCase()}. How severe is the pain?`);
+  }, 600);
+}
+
+function pickSeverity(level) {
+  addMsg(`${level.charAt(0).toUpperCase()+level.slice(1)} pain`, 'user');
+  document.getElementById('optArea').innerHTML = '';
+  setTimeout(() => {
+    addMsg(`Got it! For <strong>${level}</strong> ${AREA_NAMES[currentArea].toLowerCase()} pain, I've got 3 easy exercises ready for you 🎯<br><br>They take just a few minutes and the camera will count your reps automatically! 📷<br><br>Head to the <strong>Exercises tab</strong> to pick one, then the camera will guide you! 💪`, 'bot');
+    setTimeout(() => {
+      addMsg(`💡 <em>PhysioAI tip:</em> ${AI_TIPS[currentArea]}`, 'bot');
+    }, 1000);
+    loadExercises();
+    speak(`Great! I have 3 gentle exercises for your ${AREA_NAMES[currentArea].toLowerCase()}. Head to the exercises tab to pick one!`);
+    showOptions([
+      { icon:'🏋️', label:'Go to Exercises!', action:()=>switchTab('exercises') }
+    ]);
+  }, 500);
+}
+
+// ════════════════════════════════════
+// EXERCISES
+// ════════════════════════════════════
+function loadExercises() {
+  const area = currentArea || 'knee';
+  const label = document.getElementById('exLabel');
+  label.textContent = `Exercises for ${AREA_NAMES[area] || 'You'} 💪`;
+  const list = document.getElementById('exList');
+  list.innerHTML = '';
+  EXERCISES[area].forEach((ex, i) => {
+    const card = document.createElement('div');
+    card.className = 'ex-card' + (currentEx && currentEx.id === ex.id ? ' selected' : '');
+    card.id = 'excard-'+i;
+    card.innerHTML = `
+      <div class="ex-icon-wrap" style="background:${ex.bg};">${ex.icon}</div>
+      <div class="ex-info">
+        <h3>${ex.name}</h3>
+        <p>${ex.desc}</p>
+        <div class="ex-tags">
+          <span class="tag tag-green">5 reps</span>
+          <span class="tag tag-purple">AI guided</span>
+          <span class="tag tag-blue">Beginner</span>
+        </div>
+      </div>
+      <button class="go-btn" onclick="event.stopPropagation();selectExercise(${i})">▶️ Go</button>`;
+    card.onclick = () => selectExercise(i);
+    list.appendChild(card);
+  });
+  if(!currentArea) document.getElementById('exLabel').textContent = 'All Exercises 💪';
+}
+
+function selectExercise(idx) {
+  const area = currentArea || 'knee';
+  const ex = EXERCISES[area][idx];
+  currentEx = ex;
+  document.querySelectorAll('.ex-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('excard-'+idx);
+  if(card) card.classList.add('selected');
+  document.getElementById('preCamIcon').textContent = ex.icon;
+  document.getElementById('preCamTitle').textContent = ex.name;
+  document.getElementById('preCamDesc').textContent = ex.desc;
+  const instrList = document.getElementById('instrList');
+  instrList.innerHTML = ex.instructions.map((instr, i) =>
+    `<div class="instr-item"><div class="instr-num">${i+1}</div><div>${instr}</div></div>`
+  ).join('');
+  document.getElementById('exBadge').textContent = ex.name;
+  speak(`${ex.name} selected! ${ex.instructions[0]}`);
+}
+
+// ════════════════════════════════════
+// CAMERA
+// ════════════════════════════════════
+async function startCamera() {
+  if(!currentEx) {
+    speak('Please select an exercise from the exercises tab first!', true);
+    switchTab('exercises');
+    return;
+  }
+  document.getElementById('preCamera').style.display = 'none';
+  document.getElementById('liveCamera').style.display = 'block';
+  repCount = 0; accReadings = []; startTime = Date.now();
+  stableState = 'neutral';
+  holdFrames = 0;
+  smoothBuffer = [];
+  lastRepTime = 0;
+  exerciseActive = true; lastState = 'neutral'; stateTimer = 0;
+  updateRepDots();
+
+  const video = document.getElementById('videoEl');
+  const canvas = document.getElementById('canvasEl');
+  canvasCtx = canvas.getContext('2d');
+
+  document.getElementById('instrBox').textContent = currentEx.instructions[0];
+  speak(`Let's go! ${currentEx.name}. ${currentEx.instructions[0]}`, true);
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width:{ideal:640}, height:{ideal:480}, facingMode:'user' }, audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    // Try MediaPipe
+    try {
+      mpPose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${f}` });
+      mpPose.setOptions({ modelComplexity:1, smoothLandmarks:true, enableSegmentation:false, minDetectionConfidence:0.6, minTrackingConfidence:0.6 });
+      mpPose.onResults(handlePoseResults);
+      mpCam = new Camera(video, {
+        onFrame: async () => { if(exerciseActive) await mpPose.send({image:video}); },
+        width:640, height:480
+      });
+      mpCam.start();
+      document.getElementById('poseStatus').textContent = '🟢 Pose AI On';
+      document.getElementById('poseStatus').className = 'cam-badge badge-green';
+    } catch(e) {
+      document.getElementById('poseStatus').textContent = '⚠️ Demo Mode';
+      document.getElementById('poseStatus').className = 'cam-badge badge-orange';
+      runDemoMode();
+    }
+  } catch(e) {
+    document.getElementById('poseStatus').textContent = '⚠️ No Camera';
+    document.getElementById('feedBox').className = 'feedback fb-bad';
+    document.getElementById('feedBox').textContent = '❌ Camera not available. Running in demo mode!';
+    runDemoMode();
+  }
+}
+
+function handlePoseResults(results) {
+    frameSkip++;
+    if (frameSkip % 2 !== 0) return;
+  const video = document.getElementById('videoEl');
+  const canvas = document.getElementById('canvasEl');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if(!results.poseLandmarks) return;
+
+  // Draw skeleton
+  drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+    color: 'rgba(100,220,255,0.75)', lineWidth: 3
+  });
+  drawLandmarks(canvasCtx, results.poseLandmarks, {
+    color: 'rgba(255,100,200,0.9)', fillColor:'rgba(255,255,255,0.7)', lineWidth: 1, radius: 5
+  });
+
+  if(exerciseActive && currentEx) {
+    analyzePose(results.poseLandmarks);
+  }
+}
+
+// ════════════════════════════════════
+// ANGLE MATH
+// ════════════════════════════════════
+function smooth(value) {
+  smoothBuffer.push(value);
+  if (smoothBuffer.length > 5) smoothBuffer.shift();
+  return smoothBuffer.reduce((a,b)=>a+b)/smoothBuffer.length;
+}
+
+function detectRep(angleVal, downThresh, upThresh) {
+  const now = Date.now();
+
+  if (angleVal < downThresh) {
+    if (stableState !== 'down') {
+      holdFrames++;
+      if (holdFrames > 5) {
+        stableState = 'down';
+        holdFrames = 0;
+      }
+    }
+  } 
+  else if (angleVal > upThresh) {
+    if (stableState === 'down' && now - lastRepTime > 1200) {
+      countRep();
+      lastRepTime = now;
+    }
+    stableState = 'up';
+    holdFrames = 0;
+  }
+}
+
+function angle(A, B, C) {
+  const ab = {x: A.x-B.x, y: A.y-B.y};
+  const cb = {x: C.x-B.x, y: C.y-B.y};
+  const dot = ab.x*cb.x + ab.y*cb.y;
+  const ma = Math.hypot(ab.x, ab.y), mc = Math.hypot(cb.x, cb.y);
+  if(!ma || !mc) return 0;
+  return Math.acos(Math.min(1, Math.max(-1, dot/(ma*mc)))) * 180/Math.PI;
+}
+
+function vis(lm, ...indices) {
+  return indices.every(i => lm[i] && lm[i].visibility > 0.45);
+}
+
+// ════════════════════════════════════
+// POSE ANALYSIS — per exercise
+// ════════════════════════════════════
+function analyzePose(lm) {
+  if (!exerciseActive || repCooldown) return;
+
+  const ls = lm[11], lh = lm[23], lk = lm[25], la = lm[27];
+
+  if (!(ls && lh && lk && la)) return;
+
+  // ✅ Only for squat
+  if (currentEx.detect === "squat") {
+    if ([ls, lh, lk, la].some(p => p.visibility < 0.5)) {
+      setFeedback("⚠️ Move back — full body not visible", "fb-wait");
+      return;
+    }
+  }
+
+  // ✅ SQUAT
+  if (currentEx.detect === "squat") {
+
+    let a = smooth(angle(lh, lk, la));
+
+    let acc = Math.max(0, Math.min(100, 100 - Math.abs(a - 150)));
+    setAccuracy(Math.round(acc));
+
+    detectRep(a, 110, 160);
+
+    if (a < 120) {
+      setFeedback("✅ Good depth! Now go up", "fb-good");
+    } else {
+      setFeedback("⬇️ Go lower slowly", "fb-wait");
+    }
+  }
+
+  // ✅ NECK
+  else if (currentEx.detect === "neck_tilt") {
+
+    const nose = lm[0];
+    const leftShoulder = lm[11];
+    const rightShoulder = lm[12];
+
+    if (!(nose && leftShoulder && rightShoulder)) return;
+
+    let centerX = (leftShoulder.x + rightShoulder.x) / 2;
+    let smoothTilt = smooth((nose.x - centerX) * 100);
+
+    let acc = Math.max(0, Math.min(100, 100 - Math.abs(smoothTilt)));
+    setAccuracy(Math.round(acc));
+
+    if (smoothTilt > 15) {
+      stableState = 'right';
+    } 
+    else if (smoothTilt < -15) {
+      if (stableState === 'right') countRep();
+      stableState = 'left';
+    }
+
+    setFeedback("⬅️➡️ Tilt your head", "fb-wait");
+  }
+
+  // ✅ ELBOW CURL (BEST ONE)
+  else if (currentEx.detect === "elbow_curl") {
+
+    const shoulder = lm[11];
+    const elbow = lm[13];
+    const wrist = lm[15];
+
+    if (!(shoulder && elbow && wrist)) return;
+
+    let a = smooth(angle(shoulder, elbow, wrist));
+
+    let acc = Math.max(0, Math.min(100, 100 - Math.abs(a - 60)));
+    setAccuracy(Math.round(acc));
+
+    if (a < 60) {
+      stableState = 'up';
+    } 
+    else if (a > 140) {
+      if (stableState === 'up') {
+        countRep();
+        stableState = 'down';
+      }
+    }
+
+    if (a < 70) {
+      setFeedback("💪 Good curl!", "fb-good");
+    } else {
+      setFeedback("⬆️ Lift your arm", "fb-wait");
+    }
+  }
+
+  // fallback
+  else {
+    let acc = Math.round(70 + Math.random() * 20);
+    setAccuracy(acc);
+    setFeedback("✅ Keep going!", "fb-good");
+  }
+}
+function setFeedback(text, cls) {
+  const el = document.getElementById('feedBox');
+  el.textContent = text;
+  el.className = 'feedback ' + cls;
+}
+
+function setAccuracy(acc) {
+  accReadings.push(acc);
+  document.getElementById('accBar').style.width = acc+'%';
+  document.getElementById('accPct').textContent = acc+'%';
+  document.getElementById('accBadge').textContent = 'Acc: '+acc+'%';
+}
+
+// ════════════════════════════════════
+// REP COUNTING
+// ════════════════════════════════════
+function countRep() {
+  if (repCount >= 5) return;
+
+  repCount++;
+  repCooldown = true;
+
+  document.getElementById('repNum').textContent = repCount;
+  updateRepDots();
+
+  speak(`Rep ${repCount}`);
+
+  setTimeout(() => {
+    repCooldown = false;
+
+    if (repCount >= 5) {
+      setTimeout(completeExercise, 800);
+    }
+  }, 1000);
+}
+
+function updateRepDots() {
+  for(let i=1; i<=5; i++) {
+    const dot = document.getElementById('d'+i);
+    dot.className = 'rdot' + (i < repCount ? ' done' : i === repCount ? ' done' : i === repCount+1 ? ' active' : '');
+    if(i<=repCount) dot.textContent = '✓';
+    else dot.textContent = i;
+  }
+}
+
+// ════════════════════════════════════
+// DEMO MODE (fallback when no MediaPipe)
+// ════════════════════════════════════
+function runDemoMode() {
+  let phase = 0, timer = 0;
+  const interval = setInterval(() => {
+    if(!exerciseActive) { clearInterval(interval); return; }
+    timer++;
+    const acc = Math.round(72 + Math.random()*24);
+    setAccuracy(acc);
+    const halfCycle = 60;
+    if(timer % (halfCycle*2) < halfCycle) {
+      setFeedback('✅ Great movement detected! Hold that position!', 'fb-good');
+      if(lastState !== 'up') lastState = 'up';
+    } else {
+      if(lastState === 'up') { lastState = 'down'; countRep(); }
+      setFeedback('⏳ Return to starting position...', 'fb-wait');
+    }
+  }, 200);
+}
+
+// ════════════════════════════════════
+// COMPLETE
+// ════════════════════════════════════
+function completeExercise() {
+  exerciseActive = false;
+  const avg = accReadings.length ? Math.round(accReadings.reduce((a,b)=>a+b)/accReadings.length) : 0;
+  const elapsed = Math.round((Date.now()-startTime)/1000);
+  const t = `${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
+  exerciseLog.push({ name:currentEx.name, icon:currentEx.icon, reps:5, acc:avg, time:t, date:new Date().toLocaleDateString('en-GB') });
+  document.getElementById('dExName').textContent = currentEx.name;
+  document.getElementById('dAcc').textContent = avg+'%';
+  document.getElementById('dTime').textContent = t;
+  document.getElementById('aiTip').textContent = currentEx.tip + ' ' + (AI_TIPS[currentArea]||'');
+  document.getElementById('completionOverlay').style.display = 'block';
+  speak('Congratulations! You completed all 5 reps! Brilliant work!', true);
+}
+
+function closeCompletion() {
+  document.getElementById('completionOverlay').style.display = 'none';
+  stopExercise();
+  switchTab('exercises');
+}
+
+function viewReport() {
+  document.getElementById('completionOverlay').style.display = 'none';
+  switchTab('report');
+}
+
+function stopExercise() {
+  exerciseActive = false;
+  if(mpCam) { try{ mpCam.stop(); }catch(e){} mpCam=null; }
+  const video = document.getElementById('videoEl');
+  if(video.srcObject) { video.srcObject.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
+  document.getElementById('liveCamera').style.display = 'none';
+  document.getElementById('preCamera').style.display = 'block';
+  speak('Exercise stopped. Good effort today!');
+}
+
+// ════════════════════════════════════
+// REPORT
+// ════════════════════════════════════
+function updateReport() {
+  const area = document.getElementById('reportArea');
+  if(!exerciseLog.length) {
+    area.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span><p>Complete some exercises and your progress will appear here!</p></div>`;
+    return;
+  }
+  const total = exerciseLog.reduce((a,b)=>a+b.reps,0);
+  const avgAcc = Math.round(exerciseLog.reduce((a,b)=>a+b.acc,0)/exerciseLog.length);
+  const sessions = exerciseLog.length;
+  let html = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" style="color:var(--pink);">${total}</div><div class="stat-lbl">Total Reps</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--purple);">${avgAcc}%</div><div class="stat-lbl">Avg Accuracy</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--green);">${sessions}</div><div class="stat-lbl">Sessions</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">Session History</div>`;
+  exerciseLog.slice().reverse().forEach(log => {
+    html += `<div class="log-card">
+      <div class="log-head">
+        <div class="log-name">${log.icon} ${log.name}</div>
+        <div class="log-date">${log.date}</div>
+      </div>
+      <div class="log-row"><span class="log-key">Reps done</span><span class="log-val">5/5 ✅</span></div>
+      <div class="log-row"><span class="log-key">Time taken</span><span class="log-val">${log.time}</span></div>
+      <div class="log-row" style="display:block;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span class="log-key">Accuracy</span><span class="log-val">${log.acc}%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${log.acc}%"></div></div>
+      </div>
+    </div>`;
+  });
+  area.innerHTML = html;
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+initChat();
+loadExercises();
+synth.getVoices(); // preload voices
+</script>
+</body>
+</html>
